@@ -1,5 +1,3 @@
-//sign in action    
-
 import { supabase } from "@/lib/supabase";
 
 export type UserRole = 'admin' | 'user';
@@ -47,8 +45,6 @@ export async function signInAction(email: string, password: string): Promise<Aut
     }
 }
 
-//sign up action
-
 export async function signUpAction(email: string, password: string): Promise<AuthResponse> {
     try {
         const { data: authData, error: authError } = await supabase.auth.signUp({
@@ -59,16 +55,15 @@ export async function signUpAction(email: string, password: string): Promise<Aut
         if (authError) throw authError;
 
         if (authData.user) {
-            // Insert into public.users table with admin role
+            // Insert into public.users table with role and email
             const { error: insertError } = await supabase
                 .from('users')
-                .insert([
-                    {
-                        id: authData.user.id,
-                        full_name: email.split('@')[0], // Default name from email
-                        role: 'admin'
-                    }
-                ]);
+                .insert([{
+                    id: authData.user.id,
+                    full_name: email.split('@')[0],
+                    role: 'user',
+                    email: authData.user.email!
+                }]);
 
             if (insertError) throw insertError;
         }
@@ -77,7 +72,7 @@ export async function signUpAction(email: string, password: string): Promise<Aut
             user: authData.user ? {
                 id: authData.user.id,
                 email: authData.user.email!,
-                role: 'admin'
+                role: 'user'
             } : null,
             error: null
         };
@@ -89,20 +84,16 @@ export async function signUpAction(email: string, password: string): Promise<Aut
     }
 }
 
-//sign out action
-
 export async function signOutAction() {
     return await supabase.auth.signOut();
 }
 
-//get user action
-
 export async function getCurrentUser(): Promise<AuthResponse> {
     try {
         const { data: authData, error: authError } = await supabase.auth.getUser();
-        
+
         if (authError) throw authError;
-        
+
         if (!authData.user) {
             return { user: null, error: null };
         }
@@ -131,8 +122,3 @@ export async function getCurrentUser(): Promise<AuthResponse> {
         };
     }
 }
-
-
-
-
-
