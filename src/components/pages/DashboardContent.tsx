@@ -6,6 +6,11 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
 import CertificateTemplatePage from '@/components/pages/certificateTemplatePage';
 import InternshipPage from '@/components/pages/internshipPage';
+import CoursePage from './coursePage';
+import TaskPage from './taskPage';
+import CourseTaskPage from './courseTaskPage';
+import DashboardOverview from './dashboardOverviewPage';
+import SubmissionPage from './submissionPage';
 
 export default function DashboardContent() {
     const { user, loading } = useAuth();
@@ -35,21 +40,26 @@ export default function DashboardContent() {
         case 'internship':
             content = <InternshipPage />;
             break;
+        case 'course':
+            content = <CoursePage />;
+            break;
+        case 'task':
+            content = <TaskPage />;
+            break;
+        case 'course-task':
+            content = <CourseTaskPage />;
+            break;
+        case 'submission':
+            content = <SubmissionPage />;
+            break;
         default:
-            content = (
-                <div className="p-6">
-                    <h1 className="text-2xl font-bold mb-4">Welcome to the Admin Dashboard</h1>
-                    <p className="text-gray-600">
-                        Select a section from the sidebar to manage your content.
-                    </p>
-                </div>
-            );
+            content = <DashboardOverview />;
     }
 
     return (
-        <div className="flex h-screen">
+        <div className="min-h-screen bg-gray-50">
             <Sidebar />
-            <main className="flex-1 overflow-y-auto bg-gray-50">
+            <main className="pl-64">
                 {content}
             </main>
         </div>
