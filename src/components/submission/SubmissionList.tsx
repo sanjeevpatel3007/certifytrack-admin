@@ -46,15 +46,25 @@ interface Submission {
 
 export default function SubmissionList() {
   const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [filteredSubmissions, setFilteredSubmissions] = useState<Submission[]>([]);
   const [selected, setSelected] = useState<Submission | null>(null);
   const [isOpen, setIsOpen] = useState(false);
   const [isUpdating, setIsUpdating] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  // Filter states
+  const [selectedInternship, setSelectedInternship] = useState<string>('');
+  const [selectedTask, setSelectedTask] = useState<string>('');
+  const [selectedStatus, setSelectedStatus] = useState<string>('');
+
   useEffect(() => {
     fetchSubmissions();
   }, []);
+
+  useEffect(() => {
+    applyFilters();
+  }, [submissions, selectedInternship, selectedTask, selectedStatus]);
 
   const fetchSubmissions = async () => {
     try {
@@ -70,6 +80,63 @@ export default function SubmissionList() {
       setIsLoading(false);
     }
   };
+
+  const applyFilters = () => {
+    let filtered = [...submissions];
+
+    // Filter by internship
+    if (selectedInternship) {
+      filtered = filtered.filter(submission => 
+        submission.tasks?.internships?.id === selectedInternship
+      );
+    }
+
+    // Filter by task
+    if (selectedTask) {
+      filtered = filtered.filter(submission => 
+        submission.tasks?.id === selectedTask
+      );
+    }
+
+    // Filter by status
+    if (selectedStatus) {
+      filtered = filtered.filter(submission => 
+        submission.status === selectedStatus
+      );
+    }
+
+    setFilteredSubmissions(filtered);
+  };
+
+  const clearFilters = () => {
+    setSelectedInternship('');
+    setSelectedTask('');
+    setSelectedStatus('');
+  };
+
+  // Get unique internships and tasks for filter options
+  const uniqueInternships = Array.from(
+    new Set(submissions.map(s => s.tasks?.internships?.id).filter(Boolean))
+  ).map(id => {
+    const submission = submissions.find(s => s.tasks?.internships?.id === id);
+    return {
+      id: id!,
+      title: submission?.tasks?.internships?.title || 'Unknown'
+    };
+  });
+
+  const uniqueTasks = Array.from(
+    new Set(submissions.map(s => s.tasks?.id).filter(Boolean))
+  ).map(id => {
+    const submission = submissions.find(s => s.tasks?.id === id);
+    return {
+      id: id!,
+      title: submission?.tasks?.title || 'Unknown',
+      internshipId: submission?.tasks?.internship_id || ''
+    };
+  }).filter(task => 
+    !selectedInternship || task.internshipId === selectedInternship
+  );
 
   const openModal = async (id: string) => {
     try {
@@ -127,65 +194,147 @@ export default function SubmissionList() {
 
   return (
     <div className="p-6">
-      <h2 className="text-xl font-bold mb-4">All Submissions</h2>
-      {submissions.length === 0 ? (
+      <div className="flex justify-between items-center mb-6">
+        <h2 className="text-xl font-bold">All Submissions</h2>
+        <div className="text-sm text-gray-500">
+          Showing {filteredSubmissions.length} of {submissions.length} submissions
+        </div>
+      </div>
+
+      {/* Filters */}
+      <div className="bg-white p-4 rounded-lg border border-gray-200 mb-6">
+        <div className="flex flex-wrap gap-4 items-end">
+          {/* Internship Filter */}
+          <div className="flex-1 min-w-[200px]">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Filter by Internship
+            </label>
+            <select
+              value={selectedInternship}
+              onChange={(e) => {
+                setSelectedInternship(e.target.value);
+                setSelectedTask(''); // Reset task filter when internship changes
+              }}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              <option value="">All Internships</option>
+              {uniqueInternships.map((internship) => (
+                <option key={internship.id} value={internship.id}>
+                  {internship.title}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Task Filter */}
+          <div className="flex-1 min-w-[200px]">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Filter by Task
+            </label>
+            <select
+              value={selectedTask}
+              onChange={(e) => setSelectedTask(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+              disabled={!selectedInternship}
+            >
+              <option value="">All Tasks</option>
+              {uniqueTasks.map((task) => (
+                <option key={task.id} value={task.id}>
+                  {task.title}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Status Filter */}
+          <div className="flex-1 min-w-[150px]">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Filter by Status
+            </label>
+            <select
+              value={selectedStatus}
+              onChange={(e) => setSelectedStatus(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500"
+            >
+              <option value="">All Status</option>
+              <option value="pending">Pending</option>
+              <option value="approved">Approved</option>
+              <option value="rejected">Rejected</option>
+            </select>
+          </div>
+
+          {/* Clear Filters Button */}
+          <div>
+            <button
+              onClick={clearFilters}
+              className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 border border-gray-300 rounded-md hover:bg-gray-200 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:border-gray-500 transition-colors duration-150"
+            >
+              Clear Filters
+            </button>
+          </div>
+        </div>
+      </div>
+
+      {filteredSubmissions.length === 0 ? (
         <div className="text-center py-8 bg-gray-50 rounded-lg">
-          <p className="text-gray-500">No submissions yet</p>
+          <p className="text-gray-500">
+            {submissions.length === 0 ? 'No submissions yet' : 'No submissions match the selected filters'}
+          </p>
         </div>
       ) : (
       <div className="overflow-x-auto">
-        <table className="min-w-full bg-white border border-gray-200">
+        <table className="min-w-full bg-white border border-gray-200 rounded-lg overflow-hidden">
           <thead>
-            <tr className="bg-gray-100">
-              <th className="px-4 py-2 border">Name</th>
-              <th className="px-4 py-2 border">Internship</th>
-              <th className="px-4 py-2 border">Task</th>
-              <th className="px-4 py-2 border">Day</th>
-              <th className="px-4 py-2 border">Status</th>
-              <th className="px-4 py-2 border">Submitted At</th>
-              <th className="px-4 py-2 border">View</th>
-              <th className="px-4 py-2 border">Actions</th>
+            <tr className="bg-gray-50">
+              <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Name</th>
+              <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Internship</th>
+              <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Task</th>
+              <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Day</th>
+              <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+              <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Submitted At</th>
+              <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">View</th>
+              <th className="px-4 py-3 border-b text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
             </tr>
           </thead>
-          <tbody>
-            {submissions.map((s) => (
-              <tr key={s.id}>
-                  <td className="px-4 py-2 border">{s.users?.full_name || 'N/A'}</td>
-                  <td className="px-4 py-2 border">{s.tasks?.internships?.title || 'N/A'}</td>
-                  <td className="px-4 py-2 border">{s.tasks?.title || 'N/A'}</td>
-                  <td className="px-4 py-2 border">Day {s.tasks?.assigned_day || 'N/A'}</td>
-                  <td className="px-4 py-2 border">
-                    <span className={`capitalize px-2 py-1 rounded text-sm ${
+          <tbody className="bg-white divide-y divide-gray-200">
+            {filteredSubmissions.map((s) => (
+              <tr key={s.id} className="hover:bg-gray-50">
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{s.users?.full_name || 'N/A'}</td>
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{s.tasks?.internships?.title || 'N/A'}</td>
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{s.tasks?.title || 'N/A'}</td>
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">Day {s.tasks?.assigned_day || 'N/A'}</td>
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
                       s.status === 'approved' ? 'bg-green-100 text-green-800' :
                       s.status === 'rejected' ? 'bg-red-100 text-red-800' :
                       'bg-yellow-100 text-yellow-800'
                     }`}>
-                      {s.status}
+                      {s.status.charAt(0).toUpperCase() + s.status.slice(1)}
                     </span>
                   </td>
-                <td className="px-4 py-2 border">{new Date(s.submitted_at).toLocaleString()}</td>
-                <td className="px-4 py-2 border">
+                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">{new Date(s.submitted_at).toLocaleString()}</td>
+                <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
                   <button
                     onClick={() => openModal(s.id)}
-                    className="text-blue-600 hover:underline"
+                    className="text-indigo-600 hover:text-indigo-900 font-medium"
                   >
                     View
                   </button>
                 </td>
-                  <td className="px-4 py-2 border">
+                  <td className="px-4 py-3 whitespace-nowrap text-sm text-gray-900">
                     {s.status === 'pending' && (
                       <div className="flex gap-2">
                         <button
                           onClick={() => handleStatusUpdate(s.id, 'approved')}
                           disabled={isUpdating}
-                          className="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600 disabled:opacity-50"
+                          className="bg-green-500 text-white px-3 py-1 rounded text-sm hover:bg-green-600 disabled:opacity-50 transition-colors duration-150"
                         >
                           Approve
                         </button>
                         <button
                           onClick={() => handleStatusUpdate(s.id, 'rejected')}
                           disabled={isUpdating}
-                          className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 disabled:opacity-50"
+                          className="bg-red-500 text-white px-3 py-1 rounded text-sm hover:bg-red-600 disabled:opacity-50 transition-colors duration-150"
                         >
                           Reject
                         </button>
