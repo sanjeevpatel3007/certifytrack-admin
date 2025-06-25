@@ -50,13 +50,6 @@ const Sidebar = () => {
           </button>
           
           <button
-            onClick={() => handleNavigation('certificate')}
-            className={getButtonClass('certificate')}
-          >
-            Certificate Templates
-          </button>
-          
-          <button
             onClick={() => handleNavigation('internship')}
             className={getButtonClass('internship')}
           >

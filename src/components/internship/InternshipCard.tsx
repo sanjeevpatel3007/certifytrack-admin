@@ -43,6 +43,14 @@ interface InternshipCardProps {
                 name: string;
             };
         }[];
+        certificate_template: {
+            completion?: {
+                title: string;
+            };
+            internship?: {
+                title: string;
+            };
+        } | null;
     };
     onDelete: () => void;
     onEdit: (internship: any) => void;
@@ -263,18 +271,20 @@ export default function InternshipCard({ internship, onDelete, onEdit }: Interns
                         )}
 
                         {/* Certificates */}
-                        {internship.internship_certificates && internship.internship_certificates.length > 0 && (
+                        {internship.certificate_template && (
                             <div>
-                                <h4 className="text-sm font-medium text-gray-900 mb-2">Certificates</h4>
-                                <div className="flex flex-wrap gap-2">
-                                    {internship.internship_certificates.map((cert) => (
-                                        <span
-                                            key={cert.certificate_templates.id}
-                                            className="px-2 py-1 text-xs bg-indigo-50 text-indigo-700 rounded-full border border-indigo-200"
-                                        >
-                                            {cert.certificate_templates.name}
+                                <h4 className="text-sm font-medium text-gray-900 mb-1">Certificates</h4>
+                                <div className="flex flex-wrap gap-1">
+                                    {internship.certificate_template.completion && (
+                                        <span className="px-2 py-1 bg-purple-50 text-purple-700 text-xs rounded-full border border-purple-200">
+                                            {internship.certificate_template.completion.title || 'Completion Certificate'}
                                         </span>
-                                    ))}
+                                    )}
+                                    {internship.certificate_template.internship && (
+                                        <span className="px-2 py-1 bg-purple-50 text-purple-700 text-xs rounded-full border border-purple-200">
+                                            {internship.certificate_template.internship.title || 'Internship Certificate'}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                         )}

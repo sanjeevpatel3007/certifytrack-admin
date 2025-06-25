@@ -4,7 +4,6 @@ import { useAuth } from '@/components/common/auth-provider';
 import Sidebar from '@/components/layout/sidebar';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useEffect } from 'react';
-import CertificateTemplatePage from '@/components/pages/certificateTemplatePage';
 import InternshipPage from '@/components/pages/internshipPage';
 import CoursePage from './coursePage';
 import TaskPage from './taskPage';
@@ -34,9 +33,6 @@ export default function DashboardContent() {
 
     let content;
     switch (page) {
-        case 'certificate':
-            content = <CertificateTemplatePage />;
-            break;
         case 'internship':
             content = <InternshipPage />;
             break;

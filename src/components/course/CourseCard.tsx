@@ -203,18 +203,20 @@ export default function CourseCard({ course, onDelete, onEdit }: CourseCardProps
                         )}
 
                         {/* Certificates */}
-                        {course.course_certificates && course.course_certificates.length > 0 && (
+                        {course.certificate_template && (
                             <div>
                                 <h4 className="text-sm font-medium text-gray-900 mb-1">Certificates</h4>
                                 <div className="flex flex-wrap gap-1">
-                                    {course.course_certificates.map((cert) => (
-                                        <span
-                                            key={cert.certificate_id}
-                                            className="px-2 py-1 bg-purple-50 text-purple-700 text-xs rounded-full border border-purple-200"
-                                        >
-                                            {cert.certificate_templates?.name || 'Certificate'}
+                                    {course.certificate_template.completion && (
+                                        <span className="px-2 py-1 bg-purple-50 text-purple-700 text-xs rounded-full border border-purple-200">
+                                            {course.certificate_template.completion.title || 'Completion Certificate'}
                                         </span>
-                                    ))}
+                                    )}
+                                    {course.certificate_template.course && (
+                                        <span className="px-2 py-1 bg-purple-50 text-purple-700 text-xs rounded-full border border-purple-200">
+                                            {course.certificate_template.course.title || 'Course Certificate'}
+                                        </span>
+                                    )}
                                 </div>
                             </div>
                         )}

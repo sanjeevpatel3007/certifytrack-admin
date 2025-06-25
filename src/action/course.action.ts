@@ -1,5 +1,18 @@
 import { supabase } from "@/lib/supabase";
 
+export type CourseDifficulty = 'beginner' | 'intermediate' | 'advanced';
+
+export interface CertificateTemplate {
+    completion?: {
+        title: string;
+        template: string;
+    };
+    course?: {
+        title: string;
+        template: string;
+    };
+}
+
 export interface Course {
     id: string;
     title: string;
@@ -9,21 +22,13 @@ export interface Course {
     mentors: string[] | null;
     tags: string[] | null;
     duration_days: number | null;
-    difficulty: string | null;
+    difficulty: CourseDifficulty | null;
     image_url: string | null;
     video_url: string | null;
     is_published: boolean;
-    created_by: string | null;
     created_at: string;
     updated_at: string;
-    slug: string | null;
-    course_certificates?: {
-        certificate_id: string;
-        certificate_templates?: {
-            id: string;
-            name: string;
-        };
-    }[];
+    certificate_template: CertificateTemplate | null;
 }
 
 export interface CreateCourseInput {
@@ -34,11 +39,11 @@ export interface CreateCourseInput {
     mentors?: string[];
     tags?: string[];
     duration_days?: number;
-    difficulty?: string;
+    difficulty?: CourseDifficulty;
     image_url?: string;
     video_url?: string;
     is_published?: boolean;
-    certificate_templates?: string[]; // Array of certificate template IDs
+    certificate_template?: CertificateTemplate;
 }
 
 export async function createCourse(data: CreateCourseInput) {
@@ -46,44 +51,23 @@ export async function createCourse(data: CreateCourseInput) {
         const { data: userData, error: userError } = await supabase.auth.getUser();
         if (userError) throw userError;
 
-        const { certificate_templates, ...courseData } = data;
-        
-        // Generate slug from title
-        const slug = data.title.toLowerCase().replace(/[^a-z0-9]+/g, '-');
-
-        // Create course
         const { data: course, error: courseError } = await supabase
             .from('courses')
             .insert([{
-                ...courseData,
+                ...data,
                 created_by: userData.user.id,
-                slug,
                 // Ensure all array fields are properly handled
-                tags: courseData.tags || [],
-                mentors: courseData.mentors || [],
-                features: courseData.features || [],
+                features: data.features || [],
+                mentors: data.mentors || [],
+                tags: data.tags || [],
                 // Set default values
-                is_published: courseData.is_published || false
+                difficulty: data.difficulty || 'beginner',
+                is_published: data.is_published || false
             }])
             .select()
             .single();
 
         if (courseError) throw courseError;
-
-        // If certificate templates are provided, create the connections
-        if (certificate_templates?.length) {
-            const { error: certError } = await supabase
-                .from('course_certificates')
-                .insert(
-                    certificate_templates.map(cert_id => ({
-                        course_id: course.id,
-                        certificate_id: cert_id
-                    }))
-                );
-
-            if (certError) throw certError;
-        }
-
         return course;
     } catch (error) {
         console.error('Error creating course:', error);
@@ -95,16 +79,7 @@ export async function getCourses() {
     try {
         const { data, error } = await supabase
             .from('courses')
-            .select(`
-                *,
-                course_certificates (
-                    certificate_id,
-                    certificate_templates (
-                        id,
-                        name
-                    )
-                )
-            `)
+            .select('*')
             .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -131,17 +106,14 @@ export async function deleteCourse(id: string) {
 
 export async function updateCourse(id: string, data: Partial<CreateCourseInput>) {
     try {
-        const { certificate_templates, ...updateData } = data;
-
-        // Update course data
         const { data: course, error: courseError } = await supabase
             .from('courses')
             .update({
-                ...updateData,
+                ...data,
                 // Ensure all array fields are properly handled
-                tags: updateData.tags || [],
-                mentors: updateData.mentors || [],
-                features: updateData.features || [],
+                features: data.features || [],
+                mentors: data.mentors || [],
+                tags: data.tags || [],
                 updated_at: new Date().toISOString()
             })
             .eq('id', id)
@@ -149,35 +121,25 @@ export async function updateCourse(id: string, data: Partial<CreateCourseInput>)
             .single();
 
         if (courseError) throw courseError;
-
-        // If certificate templates are provided, update the connections
-        if (certificate_templates !== undefined) {
-            // Delete existing connections
-            const { error: deleteError } = await supabase
-                .from('course_certificates')
-                .delete()
-                .eq('course_id', id);
-
-            if (deleteError) throw deleteError;
-
-            // Create new connections if there are templates
-            if (certificate_templates.length > 0) {
-                const { error: certError } = await supabase
-                    .from('course_certificates')
-                    .insert(
-                        certificate_templates.map(cert_id => ({
-                            course_id: id,
-                            certificate_id: cert_id
-                        }))
-                    );
-
-                if (certError) throw certError;
-            }
-        }
-
         return course;
     } catch (error) {
         console.error('Error updating course:', error);
+        throw error;
+    }
+}
+
+export async function getCourseById(id: string) {
+    try {
+        const { data: course, error } = await supabase
+            .from('courses')
+            .select('*')
+            .eq('id', id)
+            .single();
+
+        if (error) throw error;
+        return course;
+    } catch (error) {
+        console.error('Error fetching course:', error);
         throw error;
     }
 } 

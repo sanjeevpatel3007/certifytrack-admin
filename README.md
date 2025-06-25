@@ -20,6 +20,7 @@ create table public.course_certificates (
   constraint course_certificates_course_id_fkey foreign KEY (course_id) references courses (id) on delete CASCADE
 ) TABLESPACE pg_default;
 
+-- Updated schema for courses table
 create table public.courses (
   id uuid not null default gen_random_uuid (),
   title text not null,
@@ -37,35 +38,32 @@ create table public.courses (
   created_at timestamp without time zone null default now(),
   updated_at timestamp without time zone null default now(),
   slug text null,
+  certificate_template jsonb null,
   constraint courses_pkey primary key (id),
   constraint courses_slug_key unique (slug),
   constraint courses_created_by_fkey foreign KEY (created_by) references users (id)
 ) TABLESPACE pg_default;
 
+comment on column courses.certificate_template is 'JSON structure containing certificate templates with completion and course sections';
 
-create table public.courses (
-  id uuid not null default gen_random_uuid (),
-  title text not null,
-  description text null,
-  category text null,
-  features text[] null,
-  mentors text[] null,
-  tags text[] null,
-  duration_days integer null,
-  difficulty text null,
-  image_url text null,
-  video_url text null,
-  is_published boolean null default false,
-  created_by uuid null,
-  created_at timestamp without time zone null default now(),
-  updated_at timestamp without time zone null default now(),
-  slug text null,
-  constraint courses_pkey primary key (id),
-  constraint courses_slug_key unique (slug),
-  constraint courses_created_by_fkey foreign KEY (created_by) references users (id)
+-- Example certificate_template structure:
+/*
+{
+  "completion": {
+    "title": "Course Completion Certificate",
+    "template": "..."
+  },
+  "course": {
+    "title": "Course Certificate",
+    "template": "..."
+  }
+}
+*/
 
-
-) TABLESPACE pg_default;
+-- Note: The following tables have been removed as part of the certificate template migration:
+-- - certificate_templates
+-- - course_certificates
+-- - internship_certificates
 
 create table public.internship_certificates (
   id uuid not null default gen_random_uuid (),

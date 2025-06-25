@@ -3,7 +3,6 @@
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment, useEffect, useState } from 'react';
 import { CreateCourseInput, Course, createCourse, updateCourse } from '@/action/course.action';
-import { CertificateTemplate, getCertificateTemplates } from '@/action/certificate-template.action';
 import { uploadImage } from '@/lib/utils/upload';
 import toast from 'react-hot-toast';
 import Image from 'next/image';
@@ -27,29 +26,25 @@ const defaultFormData: CreateCourseInput = {
     image_url: '',
     video_url: '',
     is_published: false,
-    certificate_templates: []
+    certificate_template: {
+        completion: {
+            title: '',
+            template: ''
+        },
+        course: {
+            title: '',
+            template: ''
+        }
+    }
 };
 
 export default function CourseFormModal({ isOpen, onClose, onSuccess, initialData }: CourseFormModalProps) {
     const [loading, setLoading] = useState(false);
-    const [certificates, setCertificates] = useState<CertificateTemplate[]>([]);
     const [formData, setFormData] = useState<CreateCourseInput>(defaultFormData);
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string>('');
 
     useEffect(() => {
-        // Load certificate templates
-        const loadCertificates = async () => {
-            try {
-                const data = await getCertificateTemplates();
-                setCertificates(data);
-            } catch (error) {
-                toast.error('Failed to load certificate templates');
-            }
-        };
-
-        loadCertificates();
-
         // Reset form when modal opens/closes
         if (!isOpen) {
             setFormData(defaultFormData);
@@ -59,10 +54,6 @@ export default function CourseFormModal({ isOpen, onClose, onSuccess, initialDat
 
         // Set initial data if editing
         if (isOpen && initialData) {
-            const certificateIds = initialData.course_certificates?.map(
-                (cc) => cc.certificate_id
-            ) || [];
-
             // Convert null values to undefined to match CreateCourseInput type
             const formattedData: CreateCourseInput = {
                 title: initialData.title,
@@ -76,7 +67,10 @@ export default function CourseFormModal({ isOpen, onClose, onSuccess, initialDat
                 image_url: initialData.image_url ?? undefined,
                 video_url: initialData.video_url ?? undefined,
                 is_published: initialData.is_published,
-                certificate_templates: certificateIds
+                certificate_template: initialData.certificate_template ?? {
+                    completion: { title: '', template: '' },
+                    course: { title: '', template: '' }
+                }
             };
 
             setFormData(formattedData);
@@ -362,36 +356,83 @@ export default function CourseFormModal({ isOpen, onClose, onSuccess, initialDat
                                         )}
                                     </div>
 
-                                    {/* Certificate Templates */}
-                                    <div className="bg-gray-50 rounded-lg p-4">
-                                        <h4 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                                            <svg className="w-5 h-5 mr-2 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                                            </svg>
-                                            Certificate Templates
-                                        </h4>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
-                                            {certificates.map((cert) => (
-                                                <label key={cert.id} className="flex items-center p-3 bg-white rounded-lg border border-gray-200 hover:bg-gray-50 cursor-pointer transition-colors duration-200">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={formData.certificate_templates?.includes(cert.id)}
-                                                        onChange={(e) => {
-                                                            const templates = formData.certificate_templates || [];
-                                                            if (e.target.checked) {
-                                                                handleInputChange('certificate_templates', [...templates, cert.id]);
-                                                            } else {
-                                                                handleInputChange(
-                                                                    'certificate_templates',
-                                                                    templates.filter(id => id !== cert.id)
-                                                                );
-                                                            }
-                                                        }}
-                                                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                                                    />
-                                                    <span className="ml-3 text-sm text-gray-700">{cert.name}</span>
-                                                </label>
-                                            ))}
+                                    {/* Certificate Template */}
+                                    <div>
+                                        <label className="block text-sm font-medium text-gray-700 mb-2">Certificate Templates</label>
+                                        <div className="space-y-4">
+                                            {/* Completion Certificate */}
+                                            <div>
+                                                <h4 className="text-sm font-medium text-gray-900 mb-2">Completion Certificate</h4>
+                                                <div className="space-y-2">
+                                                    <div>
+                                                        <label className="block text-xs text-gray-500">Title</label>
+                                                        <input
+                                                            type="text"
+                                                            value={formData.certificate_template?.completion?.title || ''}
+                                                            onChange={(e) => handleInputChange('certificate_template', {
+                                                                ...formData.certificate_template,
+                                                                completion: {
+                                                                    ...formData.certificate_template?.completion,
+                                                                    title: e.target.value
+                                                                }
+                                                            })}
+                                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs text-gray-500">Template HTML</label>
+                                                        <textarea
+                                                            value={formData.certificate_template?.completion?.template || ''}
+                                                            onChange={(e) => handleInputChange('certificate_template', {
+                                                                ...formData.certificate_template,
+                                                                completion: {
+                                                                    ...formData.certificate_template?.completion,
+                                                                    template: e.target.value
+                                                                }
+                                                            })}
+                                                            rows={8}
+                                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm font-mono"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Course Certificate */}
+                                            <div>
+                                                <h4 className="text-sm font-medium text-gray-900 mb-2">Course Certificate</h4>
+                                                <div className="space-y-2">
+                                                    <div>
+                                                        <label className="block text-xs text-gray-500">Title</label>
+                                                        <input
+                                                            type="text"
+                                                            value={formData.certificate_template?.course?.title || ''}
+                                                            onChange={(e) => handleInputChange('certificate_template', {
+                                                                ...formData.certificate_template,
+                                                                course: {
+                                                                    ...formData.certificate_template?.course,
+                                                                    title: e.target.value
+                                                                }
+                                                            })}
+                                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs text-gray-500">Template HTML</label>
+                                                        <textarea
+                                                            value={formData.certificate_template?.course?.template || ''}
+                                                            onChange={(e) => handleInputChange('certificate_template', {
+                                                                ...formData.certificate_template,
+                                                                course: {
+                                                                    ...formData.certificate_template?.course,
+                                                                    template: e.target.value
+                                                                }
+                                                            })}
+                                                            rows={8}
+                                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm font-mono"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
 

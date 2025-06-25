@@ -3,7 +3,6 @@
 import { Dialog, Transition } from '@headlessui/react';
 import { Fragment, useEffect, useState } from 'react';
 import { CreateInternshipInput, InternshipMode, InternshipStatus, PriceType, createInternship, updateInternship } from '@/action/internship.action';
-import { CertificateTemplate, getCertificateTemplates } from '@/action/certificate-template.action';
 import { uploadImage } from '@/lib/utils/upload';
 import toast from 'react-hot-toast';
 import Image from 'next/image';
@@ -37,29 +36,25 @@ const defaultFormData: CreateInternshipInput = {
     organization_name: '',
     image_url: '',
     is_published: false,
-    certificate_templates: []
+    certificate_template: {
+        completion: {
+            title: '',
+            template: ''
+        },
+        internship: {
+            title: '',
+            template: ''
+        }
+    }
 };
 
 export default function InternshipFormModal({ isOpen, onClose, onSuccess, initialData }: InternshipFormModalProps) {
     const [loading, setLoading] = useState(false);
-    const [certificates, setCertificates] = useState<CertificateTemplate[]>([]);
     const [formData, setFormData] = useState<CreateInternshipInput>(defaultFormData);
     const [imageFile, setImageFile] = useState<File | null>(null);
     const [imagePreview, setImagePreview] = useState<string>('');
 
     useEffect(() => {
-        // Load certificate templates
-        const loadCertificates = async () => {
-            try {
-                const data = await getCertificateTemplates();
-                setCertificates(data);
-            } catch (error) {
-                toast.error('Failed to load certificate templates');
-            }
-        };
-
-        loadCertificates();
-
         // Reset form when modal opens/closes
         if (!isOpen) {
             setFormData(defaultFormData);
@@ -69,13 +64,24 @@ export default function InternshipFormModal({ isOpen, onClose, onSuccess, initia
 
         // Set initial data if editing
         if (isOpen && initialData) {
-            const certificateIds = initialData.internship_certificates?.map(
-                (ic: any) => ic.certificate_id
-            ) || [];
+            // Ensure certificate template data is properly structured
+            const certificateTemplate = initialData.certificate_template || {
+                completion: { title: '', template: '' },
+                internship: { title: '', template: '' }
+            };
 
             setFormData({
                 ...initialData,
-                certificate_templates: certificateIds
+                certificate_template: {
+                    completion: {
+                        title: certificateTemplate.completion?.title || '',
+                        template: certificateTemplate.completion?.template || ''
+                    },
+                    internship: {
+                        title: certificateTemplate.internship?.title || '',
+                        template: certificateTemplate.internship?.template || ''
+                    }
+                }
             });
 
             if (initialData.image_url) {
@@ -117,9 +123,22 @@ export default function InternshipFormModal({ isOpen, onClose, onSuccess, initia
                 imageUrl = await uploadImage(imageFile, 'internship-banner');
             }
 
+            // Remove computed fields that shouldn't be sent to the database
+            const { stats, tasks, ...dataWithoutComputed } = formData;
+
             const dataToSubmit = {
-                ...formData,
-                image_url: imageUrl
+                ...dataWithoutComputed,
+                image_url: imageUrl,
+                certificate_template: {
+                    completion: {
+                        title: formData.certificate_template?.completion?.title || '',
+                        template: formData.certificate_template?.completion?.template || ''
+                    },
+                    internship: {
+                        title: formData.certificate_template?.internship?.title || '',
+                        template: formData.certificate_template?.internship?.template || ''
+                    }
+                }
             };
 
             if (initialData) {
@@ -383,26 +402,83 @@ export default function InternshipFormModal({ isOpen, onClose, onSuccess, initia
                                         </div>
                                     </div>
 
-                                    {/* Certificate Templates */}
+                                    {/* Certificate Template */}
                                     <div>
                                         <label className="block text-sm font-medium text-gray-700 mb-2">Certificate Templates</label>
-                                        <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto border rounded-md p-2">
-                                            {certificates.map((cert) => (
-                                                <label key={cert.id} className="flex items-center space-x-2">
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={formData.certificate_templates?.includes(cert.id)}
-                                                        onChange={(e) => {
-                                                            const newTemplates = e.target.checked
-                                                                ? [...(formData.certificate_templates || []), cert.id]
-                                                                : formData.certificate_templates?.filter(id => id !== cert.id) || [];
-                                                            handleInputChange('certificate_templates', newTemplates);
-                                                        }}
-                                                        className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
-                                                    />
-                                                    <span className="text-sm text-gray-700">{cert.name}</span>
-                                                </label>
-                                            ))}
+                                        <div className="space-y-4">
+                                            {/* Completion Certificate */}
+                                            <div>
+                                                <h4 className="text-sm font-medium text-gray-900 mb-2">Completion Certificate</h4>
+                                                <div className="space-y-2">
+                                                    <div>
+                                                        <label className="block text-xs text-gray-500">Title</label>
+                                                        <input
+                                                            type="text"
+                                                            value={formData.certificate_template?.completion?.title || ''}
+                                                            onChange={(e) => handleInputChange('certificate_template', {
+                                                                ...formData.certificate_template,
+                                                                completion: {
+                                                                    ...formData.certificate_template?.completion,
+                                                                    title: e.target.value
+                                                                }
+                                                            })}
+                                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs text-gray-500">Template HTML</label>
+                                                        <textarea
+                                                            value={formData.certificate_template?.completion?.template || ''}
+                                                            onChange={(e) => handleInputChange('certificate_template', {
+                                                                ...formData.certificate_template,
+                                                                completion: {
+                                                                    ...formData.certificate_template?.completion,
+                                                                    template: e.target.value
+                                                                }
+                                                            })}
+                                                            rows={8}
+                                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm font-mono"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Internship Certificate */}
+                                            <div>
+                                                <h4 className="text-sm font-medium text-gray-900 mb-2">Internship Certificate</h4>
+                                                <div className="space-y-2">
+                                                    <div>
+                                                        <label className="block text-xs text-gray-500">Title</label>
+                                                        <input
+                                                            type="text"
+                                                            value={formData.certificate_template?.internship?.title || ''}
+                                                            onChange={(e) => handleInputChange('certificate_template', {
+                                                                ...formData.certificate_template,
+                                                                internship: {
+                                                                    ...formData.certificate_template?.internship,
+                                                                    title: e.target.value
+                                                                }
+                                                            })}
+                                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm"
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-xs text-gray-500">Template HTML</label>
+                                                        <textarea
+                                                            value={formData.certificate_template?.internship?.template || ''}
+                                                            onChange={(e) => handleInputChange('certificate_template', {
+                                                                ...formData.certificate_template,
+                                                                internship: {
+                                                                    ...formData.certificate_template?.internship,
+                                                                    template: e.target.value
+                                                                }
+                                                            })}
+                                                            rows={8}
+                                                            className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm font-mono"
+                                                        />
+                                                    </div>
+                                                </div>
+                                            </div>
                                         </div>
                                     </div>
 
