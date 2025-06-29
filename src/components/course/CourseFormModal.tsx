@@ -403,7 +403,7 @@ export default function CourseFormModal({ isOpen, onClose, onSuccess, initialDat
                                                 <div className="space-y-2">
                                                     <div>
                                                         <label className="block text-xs text-gray-500">Title</label>
-                                                        <input
+                                                    <input
                                                             type="text"
                                                             value={formData.certificate_template?.course?.title || ''}
                                                             onChange={(e) => handleInputChange('certificate_template', {

@@ -6,6 +6,7 @@ import { useAuth } from '@/components/common/auth-provider';
 import { useRouter, useSearchParams } from 'next/navigation';
 import React from 'react';
 import toast from 'react-hot-toast';
+import Link from 'next/link';
 
 const Sidebar = () => {
   const router = useRouter();
@@ -34,6 +35,16 @@ const Sidebar = () => {
       : `${baseClass} hover:bg-gray-100`;
   };
 
+  const navItems = [
+    { name: 'Overview', href: '?page=overview' },
+    { name: 'Internships', href: '?page=internship' },
+    { name: 'Courses', href: '?page=course' },
+    { name: 'Tasks', href: '?page=task' },
+    { name: 'Course Tasks', href: '?page=course-task' },
+    { name: 'Submissions', href: '?page=submission' },
+    { name: 'Mentors', href: '?page=mentors' },
+  ];
+
   return (
     <aside className="fixed top-0 left-0 w-64 h-screen bg-white border-r border-gray-200">
       <div className="flex flex-col h-full overflow-y-auto">
@@ -42,47 +53,19 @@ const Sidebar = () => {
         </div>
 
         <nav className="flex-1 p-4 space-y-1">
-          <button
-            onClick={() => handleNavigation('overview')}
-            className={getButtonClass('overview')}
-          >
-            Overview
-          </button>
-          
-          <button
-            onClick={() => handleNavigation('internship')}
-            className={getButtonClass('internship')}
-          >
-            Internships
-          </button>
-
-          <button
-            onClick={() => handleNavigation('course')}
-            className={getButtonClass('course')}
-          >
-            Courses
-          </button>
-
-          <button
-            onClick={() => handleNavigation('task')}
-            className={getButtonClass('task')}
-          >
-            Tasks
-          </button>
-
-          <button
-            onClick={() => handleNavigation('course-task')}
-            className={getButtonClass('course-task')}
-          >
-            Course Tasks
-          </button>
-
-          <button
-            onClick={() => handleNavigation('submission')}
-            className={getButtonClass('submission')}
-          >
-           Internship Submissions 
-          </button>
+          {navItems.map((item) => (
+            <Link
+              key={item.name}
+              href={item.href}
+              className={`flex items-center px-4 py-2 text-sm font-medium rounded-md ${
+                currentPage === item.href.split('=')[1]
+                  ? 'bg-gray-900 text-white'
+                  : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
+              }`}
+            >
+              {item.name}
+            </Link>
+          ))}
         </nav>
 
         <div className="flex-shrink-0 p-4 border-t border-gray-200">

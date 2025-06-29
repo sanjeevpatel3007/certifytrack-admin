@@ -10,6 +10,7 @@ import TaskPage from './taskPage';
 import CourseTaskPage from './courseTaskPage';
 import DashboardOverview from './dashboardOverviewPage';
 import SubmissionPage from './submissionPage';
+import MentorsPage from './mentoresPage';
 
 export default function DashboardContent() {
     const { user, loading } = useAuth();
@@ -47,6 +48,9 @@ export default function DashboardContent() {
             break;
         case 'submission':
             content = <SubmissionPage />;
+            break;
+        case 'mentors':
+            content = <MentorsPage />;
             break;
         default:
             content = <DashboardOverview />;
